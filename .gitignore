@@ -1,0 +1,14 @@
+.claude/
+*.jpg
+*.jpeg
+*.png
+*.zip
+*.pkl
+*.pth
+*.pt
+raw/
+processed/
+*.csv
+.env
+logs/
+*.txt
