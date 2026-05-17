@@ -40,7 +40,7 @@ def bucket_resize_crop(image):
 def load_florence(device):
     print("Loading Florence-2....")
     model = AutoModelForCausalLM.from_pretrained(
-        "microsoft/Florence-2-base", torch_dtype = torch.float16, trust_remote_code = True
+        "microsoft/Florence-2-base", dtype = torch.float16, trust_remote_code = True
     ).to(device).eval()
     processor = AutoProcessor.from_pretrained("microsoft/Florence-2-base", trust_remote_code = True)
     return model, processor
