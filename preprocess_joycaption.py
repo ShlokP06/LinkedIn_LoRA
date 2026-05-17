@@ -4,7 +4,7 @@ import mediapipe as mp
 import torch
 from PIL import Image, ImageOps
 from tqdm.auto import tqdm
-from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers import LlavaForCausalLM, AutoProcessor
 
 Raw_dir = Path("data/raw")
 Img_dir = Path("data/raw/processed/images")
@@ -15,6 +15,9 @@ Img_type = {'.jpg', '.jpeg', '.png'}
 Buckets = [
     (512, 512), (768, 768), (1024, 1024)
 ]
+CAPTION_PROMPT = """Write a long descriptive caption for this image in a formal tone.
+                    Focus on the person's facial deatures, hair, skin tone, expression,
+                    clothing details, pose, and background environment. """
 
 def pick_bucket(orig_w, orig_h):
     best = None
@@ -37,32 +40,39 @@ def bucket_resize_crop(image):
     top = (rh - bh) // 2
     return resized.crop((left, top, left + bw, top + bh))
 
-def load_florence(device):
-    print("Loading Florence-2....")
-    model = AutoModelForCausalLM.from_pretrained(
-        "microsoft/Florence-2-base", torch_dtype = torch.float16, trust_remote_code = True
-    ).to(device).eval()
-    processor = AutoProcessor.from_pretrained("microsoft/Florence-2-base", trust_remote_code = True)
+def load_joycaption() -> tuple:
+    print("Loading JoyCaption..")
+    model = LlavaForCausalLM.from_pretrained(
+        "fancyfeast/llama-joycaption-alpha-two-hf-llava",
+        dtype = torch.bfloat16,
+        device_map = 'auto'
+    ).eval()
+    processor = AutoProcessor.from_pretrained("fancyfeast/llama-joycaption-alpha-two-hf-llava")
     return model, processor
 
 @torch.no_grad
 def generate_caption(image, model, processor, device):
-    task = "<MORE_DETAILED_CAPTION>"
-    inputs = processor(text=task, images = image, return_tensors="pt").to(device)
-    if device == "cuda":
-        inputs["pixel_values"] = inputs["pixel_values"].half()
+    conversation = [
+        {"role": "system", "content": "You are a helpful image captioner."},
+        {
+            "role": "user",
+            "content": [
+                {"type": "image"},
+                {"type": "text", "text": CAPTION_PROMPT}
+            ]
+        }
+    ]
+    prompt = processor.apply_chat_template(conversation, tokenization=False, add_generation_prompt = True)
+    inputs = processor(images = image, text = prompt, return_tensors="pt").to(model.device, torch.bfloat16)
     ids = model.generate(
-        input_ids = inputs["input_ids"],
-        pixel_values = inputs["pixel_values"],
+        **inputs,
         max_new_tokens = 512,
-        num_beams = 3,
-        do_sample = False
+        do_sample = True,
+        temperature = 0.6,
+        top_p = 0.9
     )
-    raw = processor.batch_decode(ids, skip_special_tokens = False)[0]
-    parsed = processor.post_process_generation(
-        raw, task = task, image_size = (image.width, image.height)
-    )
-    return parsed[task].strip()
+    generated = ids[0][inputs['input_ids'].shape[1]:]
+    return processor.decode(generated, skip_special_tokens = True).strip()
 
 def main():
     images = sorted(p for p in Raw_dir.iterdir() if p.suffix.lower() in Img_type)
@@ -74,7 +84,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    model, processor = load_florence(device)
+    model, processor = load_joycaption()
     bucket_counts = {}
     fails = 0
     for idx, src in enumerate(tqdm(images, desc = "Processing"), start = 1):
