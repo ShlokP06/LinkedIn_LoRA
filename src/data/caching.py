@@ -33,10 +33,11 @@ def build_cache(images_dir, captions_dir, cache_dir, model_id, device):
     vae = AutoencoderKL.from_pretrained(
         model_id, subfolder="vae", torch_dtype=torch.bfloat16
     ).to(device).eval()
+    TARGET = (1280, 1280)
     latents = []
     with torch.no_grad():
         for p in tqdm(image_paths, desc = "VAE Encode"):
-            img = Image.open(p).convert("RGB")
+            img = Image.open(p).convert("RGB").resize(TARGET, Image.LANCZOS)
             pv = to_tensor(img).unsqueeze(0).to(device, dtype = torch.bfloat16)
             lat = vae.encode(pv).latent_dist.sample()
             lat = (lat - VAE_SHIFT) * VAE_SCALE
