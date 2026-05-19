@@ -14,8 +14,8 @@ class LoRALayer(nn.Module):
         self.lora_dropout = nn.Dropout(p=lora_dropout) if lora_dropout > 0.0 else nn.Identity()
         self.original = original
         self.original.requires_grad_(False)
-        self.lora_A = nn.Parameter(original.weight.new_zeros((r, original.in_features)))
-        self.lora_B = nn.Parameter(original.weight.new_zeros((original.out_features, r)))
+        self.lora_A = nn.Parameter(torch.zeros(r, original.in_features, dtype=torch.float32))
+        self.lora_B = nn.Parameter(torch.zeros(original.out_features, r, dtype=torch.float32))
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
         nn.init.zeros_(self.lora_B)
 
@@ -36,13 +36,14 @@ class LoRALayer(nn.Module):
             self.original.weight.data -= (self.lora_B @ self.lora_A) * self.scaling
             self.merged = False
 
-TARGET_MODULES = ["to_ q", "to_v", "to_k", "to_out.0"]
+DEFAULT_TARGET_MODULES = ["to_q", "to_k", "to_v", "to_out.0", "add_q_proj", "add_k_proj", "add_v_proj"]
 
-def inject_lora(model: nn.Module, r: int, lora_alpha:int):
+def inject_lora(model: nn.Module, r: int, lora_alpha: int, target_modules: list[str] | None = None):
+    targets = target_modules if target_modules is not None else DEFAULT_TARGET_MODULES
     for name, module in list(model.named_modules()):
         if not isinstance(module, nn.Linear):
             continue
-        if not any(name.endswith(t) for t in TARGET_MODULES):
+        if not any(name.endswith(t) for t in targets):
             continue
         *parent_path, attr = name.split(".")
         parent = model

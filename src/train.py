@@ -46,7 +46,8 @@ def build_transformer(cfg, device):
     for p in transformer.parameters():
         p.requires_grad = False
 
-    inject_lora(transformer, r = cfg["lora"]["rank"], lora_alpha = cfg["lora"]["alpha"])
+    inject_lora(transformer, r=cfg["lora"]["rank"], lora_alpha=cfg["lora"]["alpha"],
+                target_modules=cfg["lora"].get("target_modules"))
     if cfg["train"].get("gradient_checkpointing", False):
         transformer.enable_gradient_checkpointing()
 

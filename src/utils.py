@@ -20,10 +20,11 @@ def seed_everything(seed: int):
 def dtype_from_str(name: str):
     return {
         "bf16": torch.bfloat16,
+        "bfloat16": torch.bfloat16,
         "fp16": torch.float16,
         "float16": torch.float16,
         "fp32": torch.float32,
-        "float32": torch.float32 
+        "float32": torch.float32,
     }[name]
 
 def lr_lambda(step: int, warmup: int):
