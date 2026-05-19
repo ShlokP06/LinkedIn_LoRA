@@ -183,8 +183,8 @@ def train(cfg):
             x_t = add_noise(latents, noise, t_norm.to(latents.dtype))
 
             x_t_packed = pack_latents(x_t)
-            img_ids = prepare_img_ids(H, W, device, x_t_packed.dtype).expand(B, -1, -1)
-            txt_ids = torch.zeros(B, seq_embeds.shape[1], 3, device=device, dtype=x_t_packed.dtype)
+            img_ids = prepare_img_ids(H, W, device, x_t_packed.dtype).squeeze(0)
+            txt_ids = torch.zeros(seq_embeds.shape[1], 3, device=device, dtype=x_t_packed.dtype)
             guidance = torch.full((B,), guidance_val, device=device, dtype=torch.bfloat16)
 
             v_pred_packed = transformer(
@@ -228,6 +228,7 @@ def train(cfg):
     log.info("Training complete.")
 
 def main():
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     load_dotenv()
     if not os.environ.get("HF_TOKEN"):
         log.warning("HF_TOKEN not set - FLUX.1-dev download will fail.")
