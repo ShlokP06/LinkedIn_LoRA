@@ -42,7 +42,7 @@ def build_cache(images_dir, captions_dir, cache_dir, model_id, device):
             lat = (lat - VAE_SHIFT) * VAE_SCALE
             latents.append(lat.cpu())
     
-    torch.save(torch.cat(latents, dim = 0), latents_path)
+    torch.save(latents, latents_path)
     del vae; torch.cuda.empty_cache()
 
     print("Encoding captions with CLIP...")

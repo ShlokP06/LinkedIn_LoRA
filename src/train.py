@@ -88,7 +88,7 @@ def run_validation_samples(cfg, model, step, pipe_ref):
     pipe.transformer.eval()
 
     base_seed = int(cfg["sample"]["seed"])
-    walk = bool(cfg["sample"].get("wal_seed", False))
+    walk = bool(cfg["sample"].get("walk_seed", False))
     try:
         for i, prompt in enumerate(cfg["sample"]["prompts"]):
             seed = base_seed + (step if walk else 0) + i
@@ -145,7 +145,7 @@ def train(cfg):
     steps = int(cfg["train"]["steps"])
     accum = int(cfg["train"]["gradient_accumulation_steps"])
     grad_clip = int(cfg["train"]["grad_clip_norm"])
-    cap_dropout = int(cfg["data"]["caption_dropout"])
+    cap_dropout = float(cfg["data"]["caption_dropout"])
     guidance_val = int(cfg["train"]["noise"]["guidance_scale"])
     save_every = int(cfg["save"]["save_every"])
     sample_every = int(cfg["sample"].get("sample_every", 0))

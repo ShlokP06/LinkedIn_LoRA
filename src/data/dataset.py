@@ -14,5 +14,5 @@ class FluxDataset(Dataset):
         return len(self.latents)
     
     def __getitem__(self, index):
-        return self.latents[index], self.pooled[index], self.seq[index]
+        return self.latents[index].squeeze(0), self.pooled[index], self.seq[index]
     

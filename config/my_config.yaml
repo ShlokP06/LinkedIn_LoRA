@@ -1,14 +1,14 @@
 model:
-  name_or_path: "black-forest-labs/FLUX.1-dev"
+  name: "black-forest-labs/FLUX.1-dev"
   quantize_base: true
   dtype: bfloat16
 
 data:
-  images_dir: "data/dataset/images"
-  captions_dir: "data/dataset/captions"
+  images_dir: "data/processed/images"
+  captions_dir: "data/processed/captions_groq"
   cache_dir: "data/cache"
   trigger: "Shl0k"
-  captions_dropout: 0.05
+  caption_dropout: 0.05
 
 lora:
   rank: 16
@@ -33,7 +33,7 @@ train:
 
   optimizer: "adamw8bit"
   lr: 1.0e-4
-  weight-decay: 1.0e-4
+  weight_decay: 1.0e-4
   warmup_steps: 100
 
   ema:
@@ -61,9 +61,12 @@ sample:
   seed: 42
   walk_seed: true
   prompts:
-    - 
-    - 
-    -
-    -
-    -
+    - "LinkedIn Profile picture of Shl0k wearing a charcoal grey suit and white dress shirt, standing straight with hands clasped in front, looking directly at the camera with a confident expression, soft studio lighting against a plain white background"
+    - "LinkedIn Profile picture of Shl0k in a navy blue blazer over a light blue Oxford shirt, seated at a modern desk with a laptop open, leaning slightly forward with a relaxed smile, warm indoor office lighting"
+    - "LinkedIn Profile picture of Shl0k wearing a cream kurta with subtle embroidery, standing on an outdoor terrace at golden hour, hands in pockets, gazing slightly off-camera with a calm expression, soft warm evening light"
+    - "LinkedIn Profile picture of Shl0k in a black turtleneck and dark jeans, standing on a conference stage with a large projection screen behind him, right hand raised mid-gesture, looking at the camera under bright stage lighting"
+    - "LinkedIn Profile picture of Shl0k wearing a white polo shirt, standing against a brick wall in natural daylight, arms relaxed at his sides, smiling at the camera, casual urban outdoor setting"
+    - "LinkedIn Profile picture of Shl0k in a light grey linen shirt and dark trousers, standing in front of the Eiffel Tower on a clear sunny day, laughing with his head slightly tilted, hands in pockets, soft natural daylight"
+    - "LinkedIn Profile picture of Shl0k wearing a navy blue hoodie, sitting on a rocky shoreline at a beach with waves crashing behind him, grinning broadly at the camera, bright natural coastal light"
+    - "LinkedIn Profile picture of Shl0k in a dark olive jacket over a black turtleneck, standing on an observation deck with the Empire State Building and the Manhattan skyline visible behind him, looking off to the side with a serious expression, overcast daylight"
 
