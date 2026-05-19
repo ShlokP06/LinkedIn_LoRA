@@ -16,6 +16,9 @@ class LoRALayer(nn.Module):
         self.original.requires_grad_(False)
         self.lora_A = nn.Parameter(torch.zeros(r, original.in_features, dtype=torch.float32))
         self.lora_B = nn.Parameter(torch.zeros(original.out_features, r, dtype=torch.float32))
+        self.lora_dropout.to(device='cuda')
+        self.lora_A.to(device='cuda')
+        self.lora_B.to(device='cuda')
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
         nn.init.zeros_(self.lora_B)
 
@@ -23,6 +26,7 @@ class LoRALayer(nn.Module):
         base = self.original(x)
         if self.merged:
             return base
+        
         lora_out = (self.lora_dropout(x) @ self.lora_A.T @ self.lora_B.T) * self.scaling
         return base + lora_out
     
