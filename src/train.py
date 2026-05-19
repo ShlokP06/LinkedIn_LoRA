@@ -77,15 +77,16 @@ def run_validation_samples(cfg, model, step, pipe_ref):
     out_dir = Path(cfg["save"]["output_dir"])/"samples"/f"step_{step:06d}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    if pipe_ref.get("pipe") is None:
-        log.info("Building FluxPipeline for validation sampling")
-        pipe_ref["pipe"] = FluxPipeline.from_pretrained(
-            cfg["model"]["name"], torch_dtype = dtype_from_str(cfg["model"]["dtype"])).to('cuda')
+    log.info("Building FluxPipeline for validation sampling")
+    pipe = FluxPipeline.from_pretrained(
+        cfg["model"]["name"], torch_dtype=dtype_from_str(cfg["model"]["dtype"])
+    )
+    del pipe.transformer
+    torch.cuda.empty_cache()
 
-    pipe = pipe_ref["pipe"]
     src = model.module if hasattr(model, "module") else model
-    original = pipe.transformer
     pipe.transformer = src
+    pipe.to('cuda')
     pipe.transformer.eval()
 
     base_seed = int(cfg["sample"]["seed"])
@@ -105,7 +106,10 @@ def run_validation_samples(cfg, model, step, pipe_ref):
             image.save(out_dir/f"{i:02d}_{safe_name}.png")
         log.info(f"Wrote {len(cfg['sample']['prompts'])} samples: {out_dir}")
     finally:
-        pipe.transformer = original
+        pipe.transformer = None
+        pipe.to('cpu')
+        del pipe
+        torch.cuda.empty_cache()
         src.train()
 
 def train(cfg):
