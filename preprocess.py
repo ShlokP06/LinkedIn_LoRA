@@ -36,14 +36,17 @@ Buckets = [
     (2048, 1152), (1152, 2048),
 ]
 
-def pick_bucket(orig_w, orig_h):
+def pick_bucket(orig_w: int, orig_h: int) -> tuple:
     best = None
-    best_loss = float("inf")
+    best_score = float("inf")
     for bw, bh in Buckets:
         scale = max(bw / orig_w, bh / orig_h)
-        loss = scale * orig_w * orig_h - bw * bh
-        if loss < best_loss:
-            best_loss = loss
+        # Fraction of scaled image that gets cropped (normalized — not biased toward smaller buckets)
+        crop_fraction = (scale**2 * orig_w * orig_h - bw * bh) / (bw * bh)
+        # On ties, prefer the larger bucket (higher resolution)
+        score = crop_fraction - (bw * bh) * 1e-12
+        if score < best_score:
+            best_score = score
             best = (bw, bh, scale)
     return best
 
