@@ -18,7 +18,7 @@ from src.data.dataset import FluxDataset
 from src.data.caching import build_cache
 from src.lora.lora_linear import inject_lora
 from src.utils import load_config, seed_everything, dtype_from_str, lr_lambda, sample_timesteps
-from src.utils import add_noise, save_lora_checkpoint
+from src.utils import add_noise, save_lora_checkpoint, pack_latents, unpack_latents, prepare_img_ids
 
 logging.basicConfig(
     level=logging.INFO,
@@ -177,18 +177,27 @@ def train(cfg):
                 pooled = torch.zeros_like(pooled)
                 seq_embeds = torch.zeros_like(seq_embeds)
 
-            B = latents.shape[0]
+            B, C, H, W = latents.shape
             noise = torch.randn_like(latents)
             t, t_norm = sample_timesteps(B, device)
             x_t = add_noise(latents, noise, t_norm.to(latents.dtype))
-            guidance = torch.full((B,), guidance_val, device = device, dtype = torch.bfloat16)
-            v_pred = transformer(
-                hidden_states = x_t,
-                timestep = t,
-                pooled_projections = pooled,
-                encoder_hidden_states = seq_embeds,
-                guidance = guidance
+
+            x_t_packed = pack_latents(x_t)
+            img_ids = prepare_img_ids(H, W, device, x_t_packed.dtype).expand(B, -1, -1)
+            txt_ids = torch.zeros(B, seq_embeds.shape[1], 3, device=device, dtype=x_t_packed.dtype)
+            guidance = torch.full((B,), guidance_val, device=device, dtype=torch.bfloat16)
+
+            v_pred_packed = transformer(
+                hidden_states=x_t_packed,
+                timestep=t_norm,
+                pooled_projections=pooled,
+                encoder_hidden_states=seq_embeds,
+                img_ids=img_ids,
+                txt_ids=txt_ids,
+                guidance=guidance,
             ).sample
+
+            v_pred = unpack_latents(v_pred_packed, H, W)
             v_target = (noise - latents).detach()
             loss = F.mse_loss(v_pred.float(), v_target.float()) / accum
             loss.backward()
