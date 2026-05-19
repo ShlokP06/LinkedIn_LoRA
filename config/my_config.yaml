@@ -11,7 +11,7 @@ data:
   caption_dropout: 0.05
 
 lora:
-  rank: 16
+  rank: 8
   alpha: 16
   dropout: 0.0
   target_modules:
@@ -54,8 +54,8 @@ save:
 sample:
   enabled: true
   sample_every: 250
-  width: 768
-  height: 768
+  width: 512
+  height: 512
   steps: 30
   guidance_scale: 4.0
   seed: 42

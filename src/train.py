@@ -81,7 +81,7 @@ def run_validation_samples(cfg, model, step, pipe_ref):
         log.info("Building FluxPipeline for validation sampling")
         pipe_ref["pipe"] = FluxPipeline.from_pretrained(
             cfg["model"]["name"], torch_dtype = dtype_from_str(cfg["model"]["dtype"])).to('cuda')
-    
+
     pipe = pipe_ref["pipe"]
     src = model.module if hasattr(model, "module") else model
     original = pipe.transformer
