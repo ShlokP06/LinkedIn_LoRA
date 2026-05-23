@@ -135,8 +135,9 @@ def train(cfg):
     transformer = build_transformer(cfg, device)
     optimizer = build_optimizer(transformer, cfg)
     warmup = int(cfg["train"]["warmup_steps"])
+    steps = int(cfg["train"]["steps"])
     scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer, lr_lambda=lambda s: lr_lambda(s, warmup)
+        optimizer, lr_lambda=lambda s: lr_lambda(s, warmup, steps)
     )
     ema_cfg = cfg["train"].get("ema", {})
     ema_enabled = bool(ema_cfg.get("enabled", False))
@@ -146,12 +147,11 @@ def train(cfg):
             transformer, multi_avg_fn = get_ema_multi_avg_fn(float(ema_cfg.get("decay", 0.99)))
         )
         log.info(f"EMA enabled decay = {ema_cfg.get('decay', 0.99)}")
-
-    steps = int(cfg["train"]["steps"])
     accum = int(cfg["train"]["gradient_accumulation_steps"])
     grad_clip = int(cfg["train"]["grad_clip_norm"])
     cap_dropout = float(cfg["data"]["caption_dropout"])
     guidance_val = int(cfg["train"]["noise"]["guidance_scale"])
+    noise_offset = float(cfg["train"]["noise"].get("offset", 0.0))
     save_every = int(cfg["save"]["save_every"])
     sample_every = int(cfg["sample"].get("sample_every", 0))
     save_dtype = dtype_from_str(cfg["save"]["dtype"])
@@ -177,6 +177,9 @@ def train(cfg):
             pooled = pooled.to(device, dtype = torch.bfloat16, non_blocking = True)
             seq_embeds = seq_embeds.to(device, dtype = torch.bfloat16, non_blocking = True)
 
+            if random.random() < 0.5:
+                latents = torch.flip(latents, dims=[-1])
+
             if random.random() < cap_dropout:
                 pooled = torch.zeros_like(pooled)
                 seq_embeds = torch.zeros_like(seq_embeds)
@@ -184,7 +187,7 @@ def train(cfg):
             B, C, H, W = latents.shape
             noise = torch.randn_like(latents)
             t, t_norm = sample_timesteps(B, device)
-            x_t = add_noise(latents, noise, t_norm.to(latents.dtype))
+            x_t = add_noise(latents, noise, t_norm.to(latents.dtype), noise_offset)
 
             x_t_packed = pack_latents(x_t)
             img_ids = prepare_img_ids(H, W, device, x_t_packed.dtype).squeeze(0)

@@ -59,7 +59,7 @@ def build_cache(images_dir, captions_dir, cache_dir, model_id, device):
     print("Encoding captions with T5...")
     t5_id = "google/t5-v1_1-xxl"
     t5 = T5EncoderModel.from_pretrained(t5_id, torch_dtype = torch.bfloat16).to(device).eval()
-    t5_tokenizer = T5Tokenizer.from_pretrained(t5_id)
+    t5_tokenizer = T5Tokenizer.from_pretrained(t5_id, legacy=True)
     with torch.no_grad():
         tokens = t5_tokenizer(captions, return_tensors="pt", padding=True,
                               truncation=True, max_length=256).to(device)

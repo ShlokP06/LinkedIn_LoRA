@@ -7,8 +7,8 @@ from tqdm.auto import tqdm
 from transformers import AutoModelForCausalLM, AutoProcessor
 
 Raw_dir = Path("data/raw")
-Img_dir = Path("data/raw/processed/images")
-Cap_dir = Path("data/raw/processed/captions")
+Img_dir = Path("data/processed/images")
+Cap_dir = Path("data/processed/captions")
 
 Trigger = "Shl0k"
 Img_type = {'.jpg', '.jpeg', '.png'}
@@ -49,6 +49,29 @@ def pick_bucket(orig_w: int, orig_h: int) -> tuple:
             best_score = score
             best = (bw, bh, scale)
     return best
+
+def face_bust_crop(image: Image.Image, padding_top: float = 0.4, padding_bottom: float = 1.8, padding_side: float = 0.5) -> Image.Image:
+    """Crop to face + shoulders. Falls back to original if no face detected."""
+    rgb = np.array(image)
+    with mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.4) as det:
+        results = det.process(rgb)
+    if not results.detections:
+        return image
+
+    # Use the highest-confidence detection
+    det_box = max(results.detections, key=lambda d: d.score[0]).location_data.relative_bounding_box
+    w, h = image.size
+    fx = det_box.xmin * w
+    fy = det_box.ymin * h
+    fw = det_box.width * w
+    fh = det_box.height * h
+
+    left   = max(0, fx - padding_side   * fw)
+    top    = max(0, fy - padding_top    * fh)
+    right  = min(w, fx + fw + padding_side   * fw)
+    bottom = min(h, fy + fh + padding_bottom * fh)
+
+    return image.crop((int(left), int(top), int(right), int(bottom)))
 
 def bucket_resize_crop(image):
     ow, oh = image.size
@@ -103,6 +126,7 @@ def main():
     for idx, src in enumerate(tqdm(images, desc = "Processing"), start = 1):
         try:
             img = ImageOps.exif_transpose(Image.open(src).convert("RGB"))
+            img = face_bust_crop(img)
             out = bucket_resize_crop(img)
             key = f"{out.width}x{out.height}"
             bucket_counts[key] = bucket_counts.get(key, 0) + 1

@@ -19,7 +19,8 @@ HARD REQUIREMENTS:
 - Length: 2 to 4 sentences, plain prose. 
 
 DESCRIBE (only what is clearly visible):
-- Clothing: exact colors and garment type (e.g. navy blue suit, white polo shirt, black blazer over white shirt, ceream kurta, grey t-shirt).
+- Physical features: hair color and type (e.g. short dark wavy hair, short black straight hair), glasses frame color and shape if worn, presence or absence of facial hair, skin tone described objectively (e.g. medium-brown skin) only if clearly visible.
+- Clothing: exact colors and garment type (e.g. navy blue suit, white polo shirt, black blazer over white shirt, cream kurta, grey t-shirt).
 Mention visible layers.
 - Eyewear: whether glasses are worn; frame style/color if clearly visible.
 - Pose and body language: e.g. arms raised, hands in pockets, leaning forward, standing straight, holding  microphone, seated.

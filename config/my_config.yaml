@@ -19,6 +19,8 @@ lora:
     - "to_k"
     - "to_v"
     - "to_out.0"
+    - "proj_mlp"
+    - "proj_out"
 
 train:
   steps: 3000
@@ -41,16 +43,17 @@ train:
     scheduler: "flowmatch"
     timestep_sampling: "logit_normal"
     guidance_scale: 1.0
+    offset: 0.05
 
 save:
   output_dir: "checkpoints"
-  save_every: 250
+  save_every: 500
   max_checkpoints: 6
   dtype: "float16"
 
 sample:
   enabled: true
-  sample_every: 250
+  sample_every: 500
   width: 768
   height: 768
   steps: 40

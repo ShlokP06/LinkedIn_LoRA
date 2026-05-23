@@ -1,4 +1,5 @@
 from typing import Any
+import math
 import yaml
 import random
 import numpy as np
@@ -27,10 +28,14 @@ def dtype_from_str(name: str):
         "float32": torch.float32,
     }[name]
 
-def lr_lambda(step: int, warmup: int):
+def lr_lambda(step: int, warmup: int, total: int = 0) -> float:
     if step < warmup:
-        return float(step+1) / float(max(1, warmup))
-    return 1.0
+        return float(step + 1) / float(max(1, warmup))
+    if total <= warmup:
+        return 1.0
+    progress = (step - warmup) / max(1, total - warmup)
+    cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
+    return max(0.1, cosine)  # 10% floor
 
 def sample_timesteps(batch_size, device):
     u = torch.randn(batch_size, device=device)
@@ -38,9 +43,13 @@ def sample_timesteps(batch_size, device):
     t = (t_norm * 1000).long().clamp(1, 999)
     return t, t_norm
 
-def add_noise(latents: torch.Tensor, noise: torch.Tensor, t_norm: torch.Tensor) -> torch.Tensor:
+def add_noise(latents: torch.Tensor, noise: torch.Tensor, t_norm: torch.Tensor, noise_offset: float = 0.0) -> torch.Tensor:
+    if noise_offset > 0.0:
+        noise = noise + noise_offset * torch.randn(
+            noise.shape[0], noise.shape[1], 1, 1, device=noise.device, dtype=noise.dtype
+        )
     t = t_norm.view(-1, 1, 1, 1)
-    return (1-t)*latents + t * noise
+    return (1 - t) * latents + t * noise
 
 def pack_latents(latents: torch.Tensor) -> torch.Tensor:
     """[B, C, H, W] -> [B, (H//2)*(W//2), C*4]"""
