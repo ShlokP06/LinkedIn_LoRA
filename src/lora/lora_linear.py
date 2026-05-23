@@ -38,7 +38,7 @@ class LoRALayer(nn.Module):
             self.original.weight.data -= (self.lora_B @ self.lora_A) * self.scaling
             self.merged = False
 
-DEFAULT_TARGET_MODULES = ["to_q", "to_k", "to_v", "to_out.0", "add_q_proj", "add_k_proj", "add_v_proj"]
+DEFAULT_TARGET_MODULES = ["to_q", "to_k", "to_v", "to_out.0"]
 
 def inject_lora(model: nn.Module, r: int, lora_alpha: int, target_modules: list[str] | None = None):
     targets = target_modules if target_modules is not None else DEFAULT_TARGET_MODULES

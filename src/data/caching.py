@@ -33,7 +33,7 @@ def build_cache(images_dir, captions_dir, cache_dir, model_id, device):
     vae = AutoencoderKL.from_pretrained(
         model_id, subfolder="vae", torch_dtype=torch.bfloat16
     ).to(device).eval()
-    TARGET = (512, 512)
+    TARGET = (768, 768)
     latents = []
     with torch.no_grad():
         for p in tqdm(image_paths, desc = "VAE Encode"):
