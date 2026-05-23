@@ -58,6 +58,6 @@ def inject_lora(model: nn.Module, r: int, lora_alpha: int, target_modules: list[
 
 def lora_state_dict(model: nn.Module) -> dict:
     src = model.module if hasattr(model, "module") else model
-    return {k: v for k, v in model.state_dict().items() if "lora_" in k}
+    return {k: v for k, v in src.state_dict().items() if "lora_" in k}
 
     

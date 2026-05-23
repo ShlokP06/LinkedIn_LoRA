@@ -150,7 +150,7 @@ def train(cfg):
     accum = int(cfg["train"]["gradient_accumulation_steps"])
     grad_clip = int(cfg["train"]["grad_clip_norm"])
     cap_dropout = float(cfg["data"]["caption_dropout"])
-    guidance_val = int(cfg["train"]["noise"]["guidance_scale"])
+    guidance_val = float(cfg["train"]["noise"]["guidance_scale"])
     noise_offset = float(cfg["train"]["noise"].get("offset", 0.0))
     save_every = int(cfg["save"]["save_every"])
     sample_every = int(cfg["sample"].get("sample_every", 0))
@@ -164,7 +164,8 @@ def train(cfg):
     running_loss = 0.0
     optimizer.zero_grad(set_to_none=True)
 
-    for step in tqdm(range(1, steps + 1), desc = "train", dynamic_ncols = True):
+    pbar = tqdm(range(1, steps + 1), desc="train", dynamic_ncols=True)
+    for step in pbar:
         for _ in range(accum):
             try:
                 batch = next(data_iter)
@@ -219,8 +220,8 @@ def train(cfg):
         if ema_transformer is not None:
             ema_transformer.update_parameters(transformer)
 
-        if step % 10 == 0:
-            log.info(f"step {step}/{steps} | loss {running_loss:.4f} | lr {scheduler.get_last_lr()[0]:.2e}")
+        if step % 50 == 0:
+            pbar.set_postfix(loss=f"{running_loss:.4f}", lr=f"{scheduler.get_last_lr()[0]:.2e}")
             running_loss = 0.0
 
         if step % save_every == 0 or step == steps:

@@ -5,8 +5,8 @@ from tqdm.auto import tqdm
 from pathlib import Path
 import os
 
-image_dir = Path("data/processed/images")
-caption_dir = Path("data/processed/captions_groq")
+image_dir = Path("data/v3/images")
+caption_dir = Path("data/v3/captions_groq")
 Trigger_Prefix = "LinkedIn Profile picture of Shl0k"
 
 CAPTIONING_PROMPT = f"""You are writing a single image caption for a LoRA
@@ -46,7 +46,10 @@ Now write the caption."""
 caption_dir.mkdir(parents=True, exist_ok=True)
 load_dotenv()
 client = Groq(api_key = os.environ["GROQ_API_KEY"])
-images = sorted(image_dir.glob('*.jpg'), key = lambda p: int(p.stem))
+images = sorted(
+    [p for p in image_dir.iterdir() if p.suffix.lower() in {'.jpg', '.jpeg'}],
+    key=lambda p: int(p.stem)
+)
 for img in tqdm(images, desc = "Captioning"):
     out = caption_dir/f"{img.stem}.txt"
     if out.exists():
