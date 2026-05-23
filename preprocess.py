@@ -1,6 +1,6 @@
 from pathlib import Path
 import numpy as np
-import mediapipe as mp
+import cv2
 import torch
 from PIL import Image, ImageOps
 from tqdm.auto import tqdm
@@ -50,26 +50,22 @@ def pick_bucket(orig_w: int, orig_h: int) -> tuple:
             best = (bw, bh, scale)
     return best
 
+_face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+
 def face_bust_crop(image: Image.Image, padding_top: float = 0.4, padding_bottom: float = 1.8, padding_side: float = 0.5) -> Image.Image:
     """Crop to face + shoulders. Falls back to original if no face detected."""
-    rgb = np.array(image)
-    with mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.4) as det:
-        results = det.process(rgb)
-    if not results.detections:
+    gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
+    faces = _face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    if len(faces) == 0:
         return image
 
-    # Use the highest-confidence detection
-    det_box = max(results.detections, key=lambda d: d.score[0]).location_data.relative_bounding_box
+    x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])  # largest face
     w, h = image.size
-    fx = det_box.xmin * w
-    fy = det_box.ymin * h
-    fw = det_box.width * w
-    fh = det_box.height * h
 
-    left   = max(0, fx - padding_side   * fw)
-    top    = max(0, fy - padding_top    * fh)
-    right  = min(w, fx + fw + padding_side   * fw)
-    bottom = min(h, fy + fh + padding_bottom * fh)
+    left   = max(0, x - padding_side   * fw)
+    top    = max(0, y - padding_top    * fh)
+    right  = min(w, x + fw + padding_side   * fw)
+    bottom = min(h, y + fh + padding_bottom * fh)
 
     return image.crop((int(left), int(top), int(right), int(bottom)))
 
