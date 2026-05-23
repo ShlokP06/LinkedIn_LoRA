@@ -55,9 +55,11 @@ _face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_front
 def face_bust_crop(image: Image.Image, padding_top: float = 0.4, padding_bottom: float = 1.8, padding_side: float = 0.5) -> Image.Image:
     """Crop to face + shoulders. Falls back to original if no face detected."""
     gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
-    faces = _face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    faces = _face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30))
     if len(faces) == 0:
-        return image
+        w, h = image.size
+        crop_h = min(h, int(w * 1.3))
+        return image.crop((0, 0, w, crop_h))
 
     x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])  # largest face
     w, h = image.size
