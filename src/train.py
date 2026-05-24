@@ -238,6 +238,8 @@ def train(cfg):
 def main():
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     load_dotenv()
+    import transformers
+    transformers.logging.set_verbosity_error()
     if not os.environ.get("HF_TOKEN"):
         log.warning("HF_TOKEN not set - FLUX.1-dev download will fail.")
 

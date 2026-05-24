@@ -53,7 +53,7 @@ save:
 
 sample:
   enabled: true
-  sample_every: 50
+  sample_every: 250
   width: 768
   height: 768
   steps: 40
