@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from pathlib import Path
 from diffusers import FluxPipeline
 from diffusers import FluxTransformer2DModel
-from transformers import PreTrainedTokenizerFast
 from transformers import BitsAndBytesConfig
 from dotenv import load_dotenv
 from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
@@ -79,12 +78,8 @@ def run_validation_samples(cfg, model, step, pipe_ref):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     log.info("Building FluxPipeline for validation sampling")
-    from huggingface_hub import hf_hub_download
-    from tokenizers import Tokenizer as _HFTokenizer
-    tok_json = hf_hub_download(cfg["model"]["name"], filename="tokenizer_2/tokenizer.json")
-    tokenizer_2 = PreTrainedTokenizerFast(tokenizer_object=_HFTokenizer.from_file(tok_json))
     pipe = FluxPipeline.from_pretrained(
-        cfg["model"]["name"], tokenizer_2=tokenizer_2, torch_dtype=dtype_from_str(cfg["model"]["dtype"])
+        cfg["model"]["name"], torch_dtype=dtype_from_str(cfg["model"]["dtype"])
     )
     del pipe.transformer
     torch.cuda.empty_cache()
