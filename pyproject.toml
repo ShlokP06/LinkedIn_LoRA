@@ -26,6 +26,7 @@ dependencies = [
 
     # --- tokenizer backends ---
     "sentencepiece>=0.2.0",
+    "protobuf>=5.26.0",
 
     # --- training utilities ---
     "tqdm>=4.66.0",
