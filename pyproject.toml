@@ -3,10 +3,9 @@ name = "linkedin-lora"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    # --- pinned: florence/flux pipeline requires these exact versions ---
-    "transformers==4.51.3",
-    "tokenizers==0.21.4",
-    "huggingface-hub==0.36.2",
+    "transformers>=5.0.0",
+    "tokenizers>=0.21.0",
+    "huggingface-hub>=1.0.0",
 
     # --- torch (installed from pytorch index below) ---
     "torch>=2.3.0",

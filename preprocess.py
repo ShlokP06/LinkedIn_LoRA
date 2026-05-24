@@ -1,16 +1,12 @@
 from pathlib import Path
 import numpy as np
 import cv2
-import torch
 from PIL import Image, ImageOps
 from tqdm.auto import tqdm
-from transformers import AutoModelForCausalLM, AutoProcessor
 
 Raw_dir = Path("data/raw")
 Img_dir = Path("data/processed/images")
-Cap_dir = Path("data/processed/captions")
 
-Trigger = "Shl0k"
 Img_type = {'.jpg', '.jpeg', '.png'}
 Buckets = [
     # Square
@@ -41,9 +37,7 @@ def pick_bucket(orig_w: int, orig_h: int) -> tuple:
     best_score = float("inf")
     for bw, bh in Buckets:
         scale = max(bw / orig_w, bh / orig_h)
-        # Fraction of scaled image that gets cropped (normalized — not biased toward smaller buckets)
         crop_fraction = (scale**2 * orig_w * orig_h - bw * bh) / (bw * bh)
-        # On ties, prefer the larger bucket (higher resolution)
         score = crop_fraction - (bw * bh) * 1e-12
         if score < best_score:
             best_score = score
@@ -61,7 +55,7 @@ def face_bust_crop(image: Image.Image, padding_top: float = 0.4, padding_bottom:
         crop_h = min(h, int(w * 1.3))
         return image.crop((0, 0, w, crop_h))
 
-    x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])  # largest face
+    x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])
     w, h = image.size
 
     left   = max(0, x - padding_side   * fw)
@@ -71,7 +65,7 @@ def face_bust_crop(image: Image.Image, padding_top: float = 0.4, padding_bottom:
 
     return image.crop((int(left), int(top), int(right), int(bottom)))
 
-def bucket_resize_crop(image):
+def bucket_resize_crop(image: Image.Image) -> Image.Image:
     ow, oh = image.size
     bw, bh, scale = pick_bucket(ow, oh)
     rw, rh = round(ow * scale), round(oh * scale)
@@ -81,47 +75,16 @@ def bucket_resize_crop(image):
     top = (rh - bh) // 2
     return resized.crop((left, top, left + bw, top + bh))
 
-def load_florence(device):
-    print("Loading Florence-2....")
-    model = AutoModelForCausalLM.from_pretrained(
-        "microsoft/Florence-2-large", torch_dtype = torch.float16, trust_remote_code = True
-    ).to(device).eval()
-    processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large", trust_remote_code = True)
-    return model, processor
-
-@torch.no_grad
-def generate_caption(image, model, processor, device):
-    task = "<MORE_DETAILED_CAPTION>"
-    inputs = processor(text=task, images = image, return_tensors="pt").to(device)
-    if device == "cuda":
-        inputs["pixel_values"] = inputs["pixel_values"].half()
-    ids = model.generate(
-        input_ids = inputs["input_ids"],
-        pixel_values = inputs["pixel_values"],
-        max_new_tokens = 768,
-        num_beams = 3,
-        do_sample = False
-    )
-    raw = processor.batch_decode(ids, skip_special_tokens = False)[0]
-    parsed = processor.post_process_generation(
-        raw, task = task, image_size = (image.width, image.height)
-    )
-    return parsed[task].strip()
-
 def main():
     images = sorted(p for p in Raw_dir.iterdir() if p.suffix.lower() in Img_type)
     if not images:
         raise SystemExit(f"No images found in {Raw_dir}")
     print(f"Found {len(images)} images")
-    Img_dir.mkdir(parents = True, exist_ok=True)
-    Cap_dir.mkdir(parents=True, exist_ok=True)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Device: {device}")
+    Img_dir.mkdir(parents=True, exist_ok=True)
 
-    model, processor = load_florence(device)
     bucket_counts = {}
     fails = 0
-    for idx, src in enumerate(tqdm(images, desc = "Processing"), start = 1):
+    for idx, src in enumerate(tqdm(images, desc="Processing"), start=1):
         try:
             img = ImageOps.exif_transpose(Image.open(src).convert("RGB"))
             img = face_bust_crop(img)
@@ -129,8 +92,6 @@ def main():
             key = f"{out.width}x{out.height}"
             bucket_counts[key] = bucket_counts.get(key, 0) + 1
             out.save(Img_dir / f"{idx}.jpg", "JPEG", quality=95)
-            caption = generate_caption(out, model, processor, device)
-            (Cap_dir / f"{idx}.txt").write_text(caption, encoding = "utf-8")
         except Exception as exc:
             print(f"Failed on {src.name}: {exc}")
             fails += 1
@@ -143,4 +104,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
