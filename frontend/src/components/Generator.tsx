@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { motion, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
+import { useState, useRef, useCallback } from "react";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import {
   ChevronDown,
   Wand2,
