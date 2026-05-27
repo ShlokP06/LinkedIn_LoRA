@@ -30,34 +30,28 @@ A personal fine-tuning project that trains a LoRA adapter on [FLUX.1-dev](https:
 
 ## Architecture
 
-```
-Raw photos
-    │
-    ▼
-preprocess.py          Face detection + multi-aspect bucket resize/crop
-    │
-    ▼
-groq_captioning.py     Llama 4 Scout via Groq API → structured .txt captions
-    │
-    ▼
-src/data/caching.py    VAE encode images + CLIP/T5 encode captions → .pt cache
-    │
-    ▼
-src/train.py           LoRA fine-tuning loop (flow-matching, EMA, val samples)
-    │
-    ▼
-checkpoints/           lora_step_XXXXXX.safetensors
-    │
-    ▼
-deploy/upload_loras.py Push checkpoints to Modal Volume
-    │
-    ▼
-deploy/modal_inference.py   FluxLoRAInference (L40S GPU, 8-bit, hot-swap)
-    │                           ↑ proxied by
-deploy/api.py          FastAPI (Modal CPU) — prompt cleaning + Modal proxy
-    │
-    ▼
-frontend/              React + Vite demo UI
+```mermaid
+flowchart TD
+    subgraph training["Training Pipeline"]
+        direction TB
+        A["📸 data/raw/\nRaw photos"] --> B["preprocess.py\nFace detect · bucket resize"]
+        B --> C["data/processed/images/"]
+        C --> D["groq_captioning.py\nLlama 4 Scout · Groq API"]
+        D --> E["data/v3/captions_groq/\n.txt captions"]
+        C & E --> F["src/data/caching.py\nVAE · CLIP · T5 → .pt tensors"]
+        F --> G["src/train.py\nLoRA · flow-matching · EMA"]
+        G --> H["checkpoints/\nlora_step_XXXXXX.safetensors"]
+    end
+
+    subgraph deployment["Deployment"]
+        direction TB
+        I["deploy/upload_loras.py"] --> J[("Modal Volume\nflux-lora-weights")]
+        J --> K["deploy/modal_inference.py\nFluxLoRAInference · L40S · 8-bit"]
+        L["deploy/api.py\nFastAPI · Groq prompt clean"] -->|proxies| K
+        M["frontend/\nReact · Vite · TypeScript"] -->|HTTP| L
+    end
+
+    H --> I
 ```
 
 ---
@@ -123,6 +117,65 @@ Or run the API locally against the live Modal inference endpoint:
 ```bash
 uvicorn deploy.api:fastapi_app --reload --port 8000
 ```
+
+---
+
+## Building Your Own Dataset
+
+To train the LoRA on a different person, follow these steps before running the pipeline.
+
+### 1. Collect photos
+
+Drop 15–40 photos into `data/raw/`. More variety = better generalization:
+
+- Mix of indoor, outdoor, and studio lighting
+- Multiple angles: straight-on, slight left/right, slight up/down
+- Neutral, smiling, and serious expressions
+- Avoid heavy filters, sunglasses, or obscured faces
+- At least a few full-head-and-shoulders frames (preprocess crops to this)
+
+### 2. Choose a trigger token
+
+Pick a unique string that won't appear naturally in prompts — a deliberate misspelling of the subject's name works well (e.g. `Shl0k` instead of `Shlok`). Open `groq_captioning.py` and set:
+
+```python
+Trigger_Prefix = "Portrait of YourToken,"
+```
+
+This token is embedded in every training caption so the model learns to associate it with the subject's appearance. Use the exact same token in inference prompts.
+
+### 3. Preprocess
+
+```bash
+python preprocess.py
+# reads  data/raw/
+# writes data/processed/images/   (face-cropped, bucket-resized)
+```
+
+Images that don't contain a detectable face are skipped automatically.
+
+### 4. Caption
+
+```bash
+python groq_captioning.py
+# reads  data/processed/images/   (or data/v3/images/ — set image_dir in the script)
+# writes data/v3/captions_groq/
+```
+
+Each caption is a structured description of clothing, pose, background, and lighting, prefixed with your trigger token. Review a few captions to make sure the trigger token appears correctly.
+
+### 5. Update config
+
+Point the training config at your new data:
+
+```yaml
+# config/my_config.yaml
+data:
+  images_dir:   "data/processed/images"
+  captions_dir: "data/v3/captions_groq"
+```
+
+Then run training as normal (`python -m src.train --config config/my_config.yaml`).
 
 ---
 
