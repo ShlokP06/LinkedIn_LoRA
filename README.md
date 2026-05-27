@@ -22,7 +22,6 @@ A personal fine-tuning project that trains a LoRA adapter on [FLUX.1-dev](https:
 - **Latent caching** — VAE + CLIP + T5 encodings pre-computed once, training only touches the transformer
 - **8-bit quantization** — `bitsandbytes` keeps the base transformer in memory during training and inference
 - **EMA + gradient checkpointing** — optional exponential moving average and activation recomputation
-- **Hot-swap LoRA** — inference container loads FLUX once; checkpoint weights are swapped in <1 s per request
 - **Prompt cleaning** — Groq LLM rewrites casual user prompts into structured portrait prompts before generation
 - **Parallel warm-up** — FastAPI backend fires Groq prompt-clean and Modal container warm-up simultaneously on every `/generate` request
 
@@ -85,6 +84,8 @@ Encodes the dataset to latent cache on the first run, then trains the LoRA adapt
 ```bash
 python -m src.train --config config/my_config.yaml
 ```
+
+Trained on an **L40S GPU via [Lightning AI](https://lightning.ai) free credits** — completes in under 2.5 hours. Requires ~40 GB VRAM (the 8-bit base transformer alone peaks at ~24 GB; headroom is needed for the optimizer and activation cache).
 
 ### 4. Deploy inference to Modal
 
@@ -207,16 +208,10 @@ All training hyperparameters live in `config/my_config.yaml`.
 
 The inference stack uses two Modal apps:
 
-- **`flux-lora-inference`** — GPU class (`L40S`) that loads FLUX.1-dev once per container and hot-swaps LoRA weights per request. Memory: ~24 GB peak (8-bit transformer + 8-bit T5 + bf16 CLIP/VAE).
+- **`flux-lora-inference`** — GPU class (`L40S`) that loads FLUX.1-dev once per container. Memory: ~24 GB peak (8-bit transformer + 8-bit T5 + bf16 CLIP/VAE).
 - **`flux-lora-api`** — CPU-only FastAPI app that cleans prompts via Groq and proxies to the GPU class.
 
 LoRA checkpoints (~15 MB each) live in a Modal Volume (`flux-lora-weights`) and are mounted into the inference container. The 35 GB base model is baked into the container image layer, so cold starts only need to load the model into GPU memory (~60 s) rather than downloading it.
-
-```bash
-# Compare two checkpoints
-modal run deploy/modal_inference.py --lora-step 1500 --output s1500.png
-modal run deploy/modal_inference.py --lora-step 3000 --output s3000.png
-```
 
 ---
 
@@ -239,7 +234,16 @@ modal run deploy/modal_inference.py --lora-step 3000 --output s3000.png
 
 ## Frontend
 
-The demo UI is a single-page React app built with Vite, TypeScript, and Tailwind CSS. It lets you type a casual prompt (e.g. "make me look like a CEO"), choose a LoRA checkpoint step, and generate a portrait via the FastAPI backend. The UI was **designed and coded using Claude Sonnet 4.6**.
+The demo UI is a single-page React app built with Vite, TypeScript, and Tailwind CSS. It lets you type a casual prompt (e.g. "make me look like a CEO") and generate a portrait via the FastAPI backend. The UI was **designed and coded using Claude Sonnet 4.6**.
+
+---
+
+## Contact
+
+**Shlok Parikh** — Student at [Indian Institute of Technology, Indore](https://www.iiti.ac.in/)
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/shlok-parikh-370773335/)
+[![Gmail](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:parikh.shlokp@gmail.com)
 
 ---
 
