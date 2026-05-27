@@ -9,8 +9,8 @@ export const EXAMPLES: ExampleItem[] = [
     prompt: "LinkedIn Profile picture of Shl0k wearing a charcoal grey suit and white dress shirt, standing straight with hands clasped in front, looking directly at the camera with a confident expression, soft studio lighting against a plain white background",
   },
   {
-    image: "/example/2.png",
-    prompt: "LinkedIn Profile picture of Shl0k wearing a white polo shirt, standing against a brick wall in natural daylight, arms relaxed at his sides, smiling at the camera, casual urban outdoor setting",
+    image: "/example/5.png",
+    prompt: "LinkedIn Profile picture of Shl0k, clean-shaven, a midnight plum bomber jacket over a crisp white button-down shirt, standing on a minimalist stage with a softly blurred TED conference backdrop, looking at the camera with a confident and engaging expression.",
   },
   {
     image: "/example/3.png",
