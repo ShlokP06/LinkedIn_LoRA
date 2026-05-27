@@ -40,7 +40,7 @@ def build_transformer(cfg, device):
         kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
         log.info("Loading Transformer Base in 8-bit")
     else:
-        log.info(f"Loding Transformer Base in {dtype}")
+        log.info(f"Loading Transformer Base in {dtype}")
 
     transformer = FluxTransformer2DModel.from_pretrained(model_id, **kwargs)
     for p in transformer.parameters():
@@ -55,10 +55,8 @@ def build_transformer(cfg, device):
         transformer.to(device)
 
     n_trainable = sum(p.numel() for p in transformer.parameters() if p.requires_grad)
-    n_total  = sum(p.numel() for p in transformer.parameters())
-    log.info(f"LoRA params: {n_trainable:,} / {n_total:,} ({100 * n_trainable/ max(1, n_total):.4f}%)")
-    print(f"Trainable Parameters:{n_trainable}")
-    print(f"Total Parameters:{n_total}")
+    n_total = sum(p.numel() for p in transformer.parameters())
+    log.info(f"LoRA params: {n_trainable:,} / {n_total:,} ({100 * n_trainable / max(1, n_total):.4f}%)")
     return transformer
 
 def build_optimizer(transformer, cfg) -> torch.optim.Optimizer:
@@ -206,7 +204,7 @@ def train(cfg):
             ).sample
 
             v_pred = unpack_latents(v_pred_packed, H, W)
-            v_target = (noise - latents).detach()
+            v_target = (noise - latents).detach()  # flow-matching: predict velocity field (noise → data)
             loss = F.mse_loss(v_pred.float(), v_target.float()) / accum
             loss.backward()
             running_loss += loss.item()

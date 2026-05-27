@@ -17,6 +17,7 @@ class LoRALayer(nn.Module):
         device = original.weight.device
         self.lora_A = nn.Parameter(torch.zeros(r, original.in_features, dtype=torch.float32, device=device))
         self.lora_B = nn.Parameter(torch.zeros(original.out_features, r, dtype=torch.float32, device=device))
+        # standard LoRA init: A is Kaiming-uniform, B is zero so delta-W = B@A starts at 0
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
         nn.init.zeros_(self.lora_B)
 

@@ -6,28 +6,16 @@ dependencies = [
     "transformers>=5.0.0",
     "tokenizers>=0.21.0",
     "huggingface-hub>=1.0.0",
-
-    # --- torch (installed from pytorch index below) ---
     "torch>=2.3.0",
     "torchvision>=0.18.0",
-
-    # --- diffusion / HF ecosystem ---
     "diffusers>=0.29.0",
     "accelerate>=0.30.0",
     "safetensors>=0.4.3",
-
-    # --- quantisation ---
     "bitsandbytes>=0.43.0",
-
-    # --- data / image processing ---
     "Pillow>=10.3.0",
     "numpy>=1.26.0",
-
-    # --- tokenizer backends ---
     "sentencepiece>=0.2.0",
     "protobuf>=5.26.0",
-
-    # --- training utilities ---
     "tqdm>=4.66.0",
     "pyyaml>=6.0.1",
     "python-dotenv>=1.0.0",

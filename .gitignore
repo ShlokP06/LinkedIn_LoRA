@@ -1,14 +1,51 @@
-.claude/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# Training data & media (exclude all images/data except committed examples)
 *.jpg
 *.jpeg
 *.png
+*.webp
 *.zip
-*.pkl
-*.pth
-*.pt
-raw/
-processed/
 *.csv
-.env
+!frontend/public/example/*.png
+
+# Training artifacts
+data/raw/
+data/processed/
+data/v3/
+data/cache/
+data/**/*.txt
+
+# Model weights & checkpoints
+checkpoints/
+*.safetensors
+*.pt
+*.pth
+*.pkl
+
+# Logs & misc
 logs/
-*.txt
+*.log
+.claude/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
