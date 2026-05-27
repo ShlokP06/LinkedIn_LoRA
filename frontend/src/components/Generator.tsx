@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { PillSelector } from "./PillSelector";
 import { GeneratorOutput, type GenerationPhase } from "./GeneratorOutput";
-import { generateImage, type GenerateRequest } from "../api";
+import { generateImage, getLoras, type GenerateRequest } from "../api";
 
 interface GeneratorProps {
   availableSteps: number[];
@@ -70,6 +70,7 @@ export function Generator({ availableSteps }: GeneratorProps) {
   const generateBtnRef = useRef<HTMLButtonElement>(null);
   const advancedContentRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const warmedUp = useRef(false);
   const isGenerating = phase === "phase1" || phase === "phase2";
 
   const handleAdvancedToggle = () => {
@@ -197,7 +198,13 @@ export function Generator({ availableSteps }: GeneratorProps) {
                 <div className="relative">
                   <textarea
                     value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      if (!warmedUp.current) {
+                        warmedUp.current = true;
+                        void getLoras();
+                      }
+                    }}
                     placeholder="e.g. Professional headshot, smart casual, soft studio lighting, confident expression, looking into camera…"
                     rows={4}
                     maxLength={500}

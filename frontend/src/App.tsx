@@ -6,7 +6,6 @@ import { Examples } from "./components/Examples";
 import { Generator } from "./components/Generator";
 import { Features } from "./components/Features";
 import { Footer } from "./components/Footer";
-import { getLoras } from "./api";
 
 function ToastNotification({
   message,
@@ -49,32 +48,8 @@ function ToastNotification({
 }
 
 export default function App() {
-  const [availableSteps, setAvailableSteps] = useState<number[]>([]);
+  const availableSteps: number[] = [1750, 2500, 2750, 3000];
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Fetch available LoRA steps on mount (also warms the inference container)
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchLoras = async () => {
-      try {
-        const data = await getLoras();
-        if (!cancelled) {
-          setAvailableSteps(data.steps.sort((a, b) => a - b));
-        }
-      } catch {
-        // Silently fall back to defaults — don't block the UI
-        if (!cancelled) {
-          setAvailableSteps([1500, 2000, 2500, 3000]);
-        }
-      }
-    };
-
-    void fetchLoras();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const dismissToast = () => setToastMessage(null);
 

@@ -94,7 +94,7 @@ image = (
     volumes={LORA_DIR: lora_volume},
     timeout=600,
     secrets=[hf_secret],
-    scaledown_window=120,  # stay warm 2 min between requests (covers demo pacing)
+    scaledown_window=60,  # stay warm 1 min after last request
 )
 class FluxLoRAInference:
     """
