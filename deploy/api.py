@@ -34,6 +34,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 load_dotenv()
 
@@ -144,6 +147,9 @@ async def _modal_generate(http: httpx.AsyncClient, cleaned: str, req: GenerateRe
     return resp.content
 
 
+_limiter = Limiter(key_func=get_remote_address)
+
+
 def build_fastapi_app() -> FastAPI:
     groq_client = _make_groq_client()
 
@@ -154,6 +160,8 @@ def build_fastapi_app() -> FastAPI:
         await _app.state.http.aclose()
 
     api = FastAPI(title="FLUX LoRA API", version="1.0", lifespan=lifespan)
+    api.state.limiter = _limiter
+    api.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     api.add_middleware(
         CORSMiddleware,
@@ -174,12 +182,14 @@ def build_fastapi_app() -> FastAPI:
         return {"steps": steps}
 
     @api.post("/clean", response_model=CleanResponse)
-    async def clean(req: CleanRequest):
+    @_limiter.limit("2/minute")
+    async def clean(req: CleanRequest, request: Request):
         """Run just the Groq prompt cleaning step. ~0.5-1 s."""
         cleaned = await _groq_clean(req.prompt, groq_client)
         return CleanResponse(cleaned=cleaned, original=req.prompt)
 
     @api.post("/generate")
+    @_limiter.limit("2/minute")
     async def generate(req: GenerateRequest, request: Request):
         """
         Full pipeline:
@@ -227,6 +237,7 @@ _image = (
         "httpx",
         "groq",
         "python-dotenv",
+        "slowapi",
     )
 )
 
