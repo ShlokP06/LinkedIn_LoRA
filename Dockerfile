@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir \
     httpx \
     groq \
     python-dotenv \
-    modal
+    modal \
+    slowapi
 
 COPY deploy/ deploy/
 COPY src/ src/
