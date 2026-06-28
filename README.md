@@ -33,7 +33,7 @@ A personal fine-tuning project that trains a LoRA adapter on [FLUX.1-dev](https:
 flowchart TD
     subgraph training["Training Pipeline"]
         direction TB
-        A["📸 data/raw/\nRaw photos"] --> B["preprocess.py\nFace detect · bucket resize"]
+        A["data/raw/\nRaw photos"] --> B["preprocess.py\nFace detect · bucket resize"]
         B --> C["data/processed/images/"]
         C --> D["groq_captioning.py\nLlama 4 Scout · Groq API"]
         D --> E["data/v3/captions_groq/\n.txt captions"]
