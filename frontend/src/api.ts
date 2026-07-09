@@ -20,6 +20,8 @@ export interface GenerateRequest {
   num_steps?: number;
   guidance_scale?: number;
   seed?: number;
+  /** false = skip the Groq cleaning pipeline and send the prompt to FLUX as-is */
+  enhance?: boolean;
 }
 
 export interface GenerateResult {

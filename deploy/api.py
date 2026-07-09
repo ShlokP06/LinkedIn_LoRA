@@ -3,6 +3,7 @@ FastAPI orchestration backend for FLUX LoRA Demo.
 
 Responsibilities:
   - Cleans user prompts via Groq (llama-3.3-70b) before sending to Flux
+    (skipped when the client sends enhance=false — raw prompt goes straight to Flux)
   - Fires Groq clean + Modal container warm-up IN PARALLEL on /generate
   - Proxies /loras to Modal (acts as the page-load warm-up trigger)
 
@@ -52,6 +53,7 @@ class GenerateRequest(BaseModel):
     num_steps: int = 28
     guidance_scale: float = 4.0
     seed: int = 42
+    enhance: bool = True  # False = skip Groq cleaning, send prompt to Flux as-is
 
 class CleanRequest(BaseModel):
     prompt: str
@@ -81,7 +83,10 @@ async def _groq_clean(raw: str, client) -> str:
                 {"role": "user", "content": raw},
             ],
             max_tokens=300,
-            temperature=0.3,
+            # 0.9 keeps outfit/setting choices varied — at low temp the model
+            # deterministically picks the same list items every request; the
+            # rigid prompt anatomy + Shl0k fallback below protect correctness
+            temperature=0.9,
         )
         cleaned = (resp.choices[0].message.content or "").strip()
         log.info("[timing] Groq clean: %.2fs", time.perf_counter() - t0)
@@ -194,6 +199,7 @@ def build_fastapi_app() -> FastAPI:
         """
         Full pipeline:
           1. Fire Groq (clean prompt) + Modal warm-up IN PARALLEL
+             (Groq step skipped entirely when enhance=false)
           2. Use cleaned prompt to call Modal generate
           3. Return PNG bytes with x-cleaned-prompt header
 
@@ -202,11 +208,15 @@ def build_fastapi_app() -> FastAPI:
         http = request.app.state.http
         t_total = time.perf_counter()
 
-        # Groq cleans the prompt + Modal container starts warming in parallel
-        cleaned, _ = await asyncio.gather(
-            _groq_clean(req.prompt, groq_client),
-            _modal_warm(http),
-        )
+        if req.enhance:
+            # Groq cleans the prompt + Modal container starts warming in parallel
+            cleaned, _ = await asyncio.gather(
+                _groq_clean(req.prompt, groq_client),
+                _modal_warm(http),
+            )
+        else:
+            await _modal_warm(http)
+            cleaned = req.prompt
 
         # StreamingResponse sends headers immediately so the client gets the cleaned
         # prompt right away; the async generator streams the PNG body when ready.
@@ -215,10 +225,12 @@ def build_fastapi_app() -> FastAPI:
             log.info("[timing] Total /generate: %.2fs", time.perf_counter() - t_total)
             yield img_bytes
 
+        # HTTP headers must be latin-1; raw prompts (enhance=false) may contain emoji etc.
+        header_safe = cleaned.encode("latin-1", errors="replace").decode("latin-1")
         return StreamingResponse(
             image_stream(),
             media_type="image/png",
-            headers={"x-cleaned-prompt": cleaned},
+            headers={"x-cleaned-prompt": header_safe},
         )
 
     return api

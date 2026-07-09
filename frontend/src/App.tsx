@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { getLoras } from "./api";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
 import { Examples } from "./components/Examples";
@@ -50,6 +51,12 @@ function ToastNotification({
 export default function App() {
   const availableSteps: number[] = [1750, 2500, 2750, 3000];
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Warm the Modal GPU container as soon as the page loads — cold start takes
+  // 20-60s, so firing this early hides most of it before the first generate.
+  useEffect(() => {
+    void getLoras().catch(() => {});
+  }, []);
 
   const dismissToast = () => setToastMessage(null);
 

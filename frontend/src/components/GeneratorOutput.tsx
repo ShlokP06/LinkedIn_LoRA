@@ -24,6 +24,8 @@ interface GeneratorOutputProps {
   meta: GenerationMeta | null;
   errorMessage: string | null;
   onRegenerate: () => void;
+  /** Whether the Groq cleaning pipeline is active — adjusts status copy */
+  enhance?: boolean;
 }
 
 function SkeletonBlock({ className }: { className?: string }) {
@@ -98,9 +100,11 @@ function IdleState() {
 function GeneratingState({
   phase,
   cleanedPrompt,
+  enhance,
 }: {
   phase: "phase1" | "phase2";
   cleanedPrompt: string | null;
+  enhance: boolean;
 }) {
   return (
     <motion.div
@@ -115,7 +119,9 @@ function GeneratingState({
         <Loader2 className="w-4 h-4 text-violet-500 animate-spin flex-shrink-0" />
         <span className="text-sm font-medium text-slate-600">
           {phase === "phase1"
-            ? "Crafting your prompt with Groq…"
+            ? enhance
+              ? "Crafting your prompt with Groq…"
+              : "Sending your prompt to FLUX…"
             : "Generating your portrait with FLUX.1-dev…"}
         </span>
       </div>
@@ -438,6 +444,7 @@ export function GeneratorOutput({
   meta,
   errorMessage,
   onRegenerate,
+  enhance = true,
 }: GeneratorOutputProps) {
   const prevUrlRef = useRef<string | null>(null);
 
@@ -469,6 +476,7 @@ export function GeneratorOutput({
           key="generating"
           phase={phase}
           cleanedPrompt={cleanedPrompt}
+          enhance={enhance}
         />
       )}
 

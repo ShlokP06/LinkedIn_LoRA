@@ -4,10 +4,11 @@ import {
   ChevronDown,
   Wand2,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { PillSelector } from "./PillSelector";
 import { GeneratorOutput, type GenerationPhase } from "./GeneratorOutput";
-import { generateImage, getLoras, type GenerateRequest } from "../api";
+import { generateImage, type GenerateRequest } from "../api";
 
 interface GeneratorProps {
   availableSteps: number[];
@@ -54,6 +55,7 @@ export function Generator({ availableSteps }: GeneratorProps) {
   const [numSteps, setNumSteps] = useState(28);
   const [guidanceScale, setGuidanceScale] = useState(4.0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [enhance, setEnhance] = useState(true);
 
   // Output state
   const [phase, setPhase] = useState<GenerationPhase>("idle");
@@ -70,7 +72,6 @@ export function Generator({ availableSteps }: GeneratorProps) {
   const generateBtnRef = useRef<HTMLButtonElement>(null);
   const advancedContentRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
-  const warmedUp = useRef(false);
   const isGenerating = phase === "phase1" || phase === "phase2";
 
   const handleAdvancedToggle = () => {
@@ -113,11 +114,14 @@ export function Generator({ availableSteps }: GeneratorProps) {
       num_steps: numSteps,
       guidance_scale: guidanceScale,
       seed,
+      enhance,
     };
 
     try {
       const result = await generateImage(req, (cleaned) => {
-        setCleanedPrompt(cleaned);
+        // With enhancement off the "cleaned" prompt is just the raw input —
+        // no point showing it back to the user in the AI-Enhanced Prompt card.
+        setCleanedPrompt(enhance ? cleaned : null);
         setPhase("phase2");
       });
 
@@ -192,19 +196,48 @@ export function Generator({ availableSteps }: GeneratorProps) {
             <div className="p-7 lg:p-8 space-y-5">
               {/* Prompt */}
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-700">
-                  Describe your portrait
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-slate-700">
+                    Describe your portrait
+                  </label>
+                  {/* AI Enhance toggle — off sends the prompt to FLUX unmodified */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enhance}
+                    onClick={() => setEnhance((v) => !v)}
+                    disabled={isGenerating}
+                    title={
+                      enhance
+                        ? "Your description is rewritten into an optimized portrait prompt"
+                        : "Your description is sent to FLUX exactly as written"
+                    }
+                    className="flex items-center gap-2 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ color: enhance ? "#7c3aed" : "#94a3b8" }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    AI Enhance
+                    <span
+                      className="relative inline-flex w-9 h-5 rounded-full transition-colors duration-200"
+                      style={{
+                        background: enhance
+                          ? "linear-gradient(135deg, #8b5cf6, #6366f1)"
+                          : "rgba(203,213,225,0.9)",
+                      }}
+                    >
+                      <motion.span
+                        layout
+                        transition={{ type: "spring", stiffness: 500, damping: 32 }}
+                        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm"
+                        style={{ left: enhance ? "calc(100% - 18px)" : "2px" }}
+                      />
+                    </span>
+                  </button>
+                </div>
                 <div className="relative">
                   <textarea
                     value={prompt}
-                    onChange={(e) => {
-                      setPrompt(e.target.value);
-                      if (!warmedUp.current) {
-                        warmedUp.current = true;
-                        void getLoras();
-                      }
-                    }}
+                    onChange={(e) => setPrompt(e.target.value)}
                     placeholder="e.g. Professional headshot, smart casual, soft studio lighting, confident expression, looking into camera…"
                     rows={4}
                     maxLength={500}
@@ -446,6 +479,7 @@ export function Generator({ availableSteps }: GeneratorProps) {
                   meta={meta}
                   errorMessage={errorMessage}
                   onRegenerate={handleRegenerate}
+                  enhance={enhance}
                 />
               </div>
             </div>
