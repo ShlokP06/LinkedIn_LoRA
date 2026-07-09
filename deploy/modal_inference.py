@@ -95,6 +95,12 @@ image = (
     timeout=600,
     secrets=[hf_secret],
     scaledown_window=60,  # stay warm 1 min after last request
+    # Snapshot the container (incl. GPU memory) after the pipeline is loaded so
+    # cold starts restore the ready-to-run pipeline instead of re-loading and
+    # re-quantizing FLUX + T5 from scratch. GPU snapshot is required here because
+    # the weights are 8-bit quantized on-device (can't be done on CPU-only snaps).
+    enable_memory_snapshot=True,
+    experimental_options={"enable_gpu_snapshot": True},
 )
 class FluxLoRAInference:
     """
@@ -109,7 +115,7 @@ class FluxLoRAInference:
         total               ~24 GB   (24 GB headroom for activations)
     """
 
-    @modal.enter()
+    @modal.enter(snap=True)
     def load_pipeline(self) -> None:
         import torch
         from diffusers import FluxPipeline, FluxTransformer2DModel
