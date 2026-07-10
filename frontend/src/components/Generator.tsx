@@ -52,7 +52,7 @@ export function Generator({ availableSteps }: GeneratorProps) {
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState(768);
   const [seed, setSeed] = useState(42);
-  const [numSteps, setNumSteps] = useState(28);
+  const [numSteps, setNumSteps] = useState(22);
   const [guidanceScale, setGuidanceScale] = useState(4.0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [enhance, setEnhance] = useState(true);

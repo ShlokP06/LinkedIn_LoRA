@@ -50,7 +50,7 @@ class GenerateRequest(BaseModel):
     prompt: str
     lora_step: Optional[int] = None
     size: int = 768
-    num_steps: int = 28
+    num_steps: int = 22
     guidance_scale: float = 4.0
     seed: int = 42
     enhance: bool = True  # False = skip Groq cleaning, send prompt to Flux as-is

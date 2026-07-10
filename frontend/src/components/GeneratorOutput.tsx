@@ -97,6 +97,38 @@ function IdleState() {
   );
 }
 
+// Render stages shown as the progress bar advances — purely cosmetic copy that
+// keeps the wait feeling active. Pick the last stage whose threshold is passed.
+const RENDER_STAGES = [
+  { at: 0, label: "Warming up the model…" },
+  { at: 22, label: "Composing your portrait…" },
+  { at: 48, label: "Painting facial details…" },
+  { at: 72, label: "Refining lighting & texture…" },
+  { at: 90, label: "Adding finishing touches…" },
+];
+
+/**
+ * Time-based "optimistic" progress. There's no real progress signal from the
+ * backend (it streams headers then the PNG blob), so we ease toward an asymptote:
+ * fast at first, slowing as it approaches CAP. Tuned so ~50s ≈ 90%. It never
+ * reaches 100% on its own — the real image replacing this view is the "100%".
+ */
+function useOptimisticProgress(active: boolean): number {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const start = performance.now();
+    const TAU = 22000; // ms — larger = slower climb; 22s ≈ 90% at 50s elapsed
+    const CAP = 96;
+    const id = window.setInterval(() => {
+      const t = performance.now() - start;
+      setProgress(Math.min(CAP, (1 - Math.exp(-t / TAU)) * 100));
+    }, 100);
+    return () => window.clearInterval(id);
+  }, [active]);
+  return progress;
+}
+
 function GeneratingState({
   phase,
   cleanedPrompt,
@@ -106,6 +138,19 @@ function GeneratingState({
   cleanedPrompt: string | null;
   enhance: boolean;
 }) {
+  const progress = useOptimisticProgress(true);
+  const pct = Math.round(progress);
+  const stageLabel =
+    [...RENDER_STAGES].reverse().find((s) => progress >= s.at)?.label ??
+    "Warming up the model…";
+
+  const statusText =
+    phase === "phase1"
+      ? enhance
+        ? "Crafting your prompt with Groq…"
+        : "Sending your prompt to FLUX…"
+      : stageLabel;
+
   return (
     <motion.div
       key="generating"
@@ -114,15 +159,37 @@ function GeneratingState({
       exit={{ opacity: 0 }}
       className="flex flex-col gap-4 min-h-[420px]"
     >
-      {/* Status bar */}
+      {/* Status bar with rotating stage copy */}
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-subtle">
         <Loader2 className="w-4 h-4 text-violet-500 animate-spin flex-shrink-0" />
-        <span className="text-sm font-medium text-slate-600">
-          {phase === "phase1"
-            ? enhance
-              ? "Crafting your prompt with Groq…"
-              : "Sending your prompt to FLUX…"
-            : "Generating your portrait with FLUX.1-dev…"}
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={statusText}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25 }}
+            className="text-sm font-medium text-slate-600"
+          >
+            {statusText}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+
+      {/* Optimistic progress bar */}
+      <div className="flex items-center gap-3 px-1">
+        <div className="relative flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full overflow-hidden"
+            style={{ background: "linear-gradient(90deg, #8b5cf6, #6366f1)" }}
+            animate={{ width: `${pct}%` }}
+            transition={{ ease: "easeOut", duration: 0.35 }}
+          >
+            <div className="shimmer absolute inset-0" />
+          </motion.div>
+        </div>
+        <span className="text-xs font-semibold text-violet-600 tabular-nums w-9 text-right">
+          {pct}%
         </span>
       </div>
 
@@ -184,11 +251,11 @@ function GeneratingState({
                 <Sparkles className="w-5 h-5 text-violet-500" />
               </div>
             </motion.div>
-            <p className="text-sm font-semibold text-slate-500">
-              {phase === "phase1" ? "Preparing…" : "Rendering portrait…"}
+            <p className="text-2xl font-bold text-violet-500 tabular-nums leading-none">
+              {pct}%
             </p>
-            <p className="text-xs text-slate-400 mt-1">
-              This takes about 25–30 seconds
+            <p className="text-xs text-slate-400 mt-2">
+              {phase === "phase1" ? "Getting ready…" : "Rendering your portrait…"}
             </p>
           </div>
         </div>
