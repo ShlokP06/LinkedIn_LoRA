@@ -2,6 +2,12 @@
 
 A personal fine-tuning project that trains a LoRA adapter on [FLUX.1-dev](https://huggingface.co/black-forest-labs/FLUX.1-dev) to generate professional LinkedIn-style portrait photos from text prompts. The full pipeline runs from raw photos on a laptop to a live serverless demo on Modal GPU infrastructure.
 
+![Python](https://img.shields.io/badge/Python-3.11+-blue)
+![FLUX.1--dev](https://img.shields.io/badge/FLUX.1--dev-LoRA-purple)
+![Modal](https://img.shields.io/badge/Modal-serverless%20GPU-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue)
+
 ---
 
 ## Sample Outputs
